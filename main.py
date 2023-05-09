@@ -1,5 +1,6 @@
 import csv
 import datetime
+import random
 from abc import ABC, abstractmethod
 from calendar import monthrange
 
@@ -155,7 +156,7 @@ class GreedyScheduler(BaseScheduler):
         super().__init__(interns, schedule)
 
     def get_best_available_intern(self, date: datetime.date, er_shift=False):
-        def sort_key(intern: Intern, date: datetime.date):
+        def calc_score(intern: Intern, date: datetime.date):
             if not intern.shifts:
                 return 100
             else:
@@ -169,10 +170,15 @@ class GreedyScheduler(BaseScheduler):
         if not available_interns:
             return None
 
-        best_intern = max(
-            available_interns,
-            key=lambda intern: sort_key(intern, date),
-        )
+        scores = [calc_score(intern, date) for intern in available_interns]
+        max_score = max(scores)
+        best_interns = [
+            intern
+            for intern, score in zip(available_interns, scores)
+            if score == max_score
+        ]
+
+        best_intern = random.choice(best_interns)
 
         return best_intern
 
