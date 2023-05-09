@@ -1,12 +1,24 @@
 import csv
 import datetime
+from abc import ABC, abstractmethod
 from calendar import monthrange
 
 
 class Intern:
-    def __init__(self, name: str, er_shift: bool):
+    def __init__(self, name: str, can_work_er: bool):
         self.name = name
-        self.er_shift = er_shift
+        self.can_work_er = can_work_er
+        self.shifts: list[datetime.date] = []
+
+    def is_available(self, date: datetime.date, er_shift=False):
+        available = True
+        if er_shift:
+            if not self.can_work_er:
+                available = False
+        for shift in self.shifts:
+            if abs((date - shift).days) < 2:
+                available = False
+        return available
 
     def __str__(self) -> str:
         return self.str_short()
@@ -15,7 +27,10 @@ class Intern:
         return self.name
 
     def str_long(self) -> str:
-        return f"{self.name} (ER duty: {self.er_shift})"
+        if self.can_work_er:
+            return f"{self.name} (ER)"
+        else:
+            return f"{self.name}"
 
 
 class InternsList(list):
@@ -66,26 +81,8 @@ class InternsList(list):
     def str_full(self) -> str:
         return "\n".join([intern.str_full() for intern in self])
 
-    # def get_best_available_intern(self, date: datetime.date, er_shift=False):
-    #     available_interns = [
-    #         intern
-    #         for intern in self.interns
-    #         if intern.is_available(date)
-    #         and (er_shift is False or (er_shift is True and intern.can_work_er))
-    #     ]
-    #
-    #     if not available_interns:
-    #         return None
-    #
-    #     best_intern = max(
-    #         available_interns,
-    #         key=lambda intern: intern.sort_key(date),
-    #     )
-    #
-    #     return best_intern
 
-
-class DaySchedule:
+class DailySchedule:
     def __init__(self, date: datetime.date, er_shifts: bool = False):
         self.date = date
         self.department_shift: Intern | None = None
@@ -109,7 +106,7 @@ class MonthlySchedule:
         self.first_er_shift_day = first_er_shift_day
         self.days = self.generate_empty_schedule()
 
-    def generate_empty_schedule(self) -> list[DaySchedule]:
+    def generate_empty_schedule(self) -> list[DailySchedule]:
         _, days_in_month = monthrange(self.year, self.month)
         empty_schedule = []
 
@@ -119,7 +116,7 @@ class MonthlySchedule:
                 er_shifts = True
             else:
                 er_shifts = False
-            day_schedule = DaySchedule(date, er_shifts)
+            day_schedule = DailySchedule(date, er_shifts)
 
             empty_schedule.append(day_schedule)
 
@@ -129,118 +126,120 @@ class MonthlySchedule:
         return "\n".join([str(day) for day in self.days])
 
 
-# # TODO: add score function
-# # TODO: change according to gpt suggestions
-# class Scheduler:
-#     def __init__(self, interns_list: InternsList, monthly_schedule: MonthlySchedule):
-#         self.interns_list = interns_list
-#         self.monthly_schedule = monthly_schedule
-#
-#     def generate_greedy_schedule(self):
-#         for day in self.monthly_schedule.schedule:
-#             print(f"day: {day.date}, ER shifts: {day.has_er_shifts}")
-#             if day.has_er_shifts:
-#                 best_available_intern = self.interns_list.get_best_available_intern(
-#                     date=day.date, er_shift=True
-#                 )
-#                 print(f"first best available intern for ER: {best_available_intern}")
-#                 day.er_shifts[0] = best_available_intern
-#                 best_available_intern.assign_to_shift(day.date)
-#
-#                 best_available_intern = self.interns_list.get_best_available_intern(
-#                     date=day.date, er_shift=True
-#                 )
-#                 print(f"second best available intern for ER: {best_available_intern}")
-#                 day.er_shifts[1] = best_available_intern
-#                 best_available_intern.assign_to_shift(day.date)
-#
-#             best_available_intern = self.interns_list.get_best_available_intern(
-#                 date=day.date, er_shift=False
-#             )
-#             print(f"best available intern for department: {best_available_intern}")
-#             day.department_shift = best_available_intern
-#             best_available_intern.assign_to_shift(day.date)
-#
-#     def get_schedule_statistics(self):
-#         stats = []
-#         for intern in self.interns_list.interns:
-#             fridays_number = 0
-#             saturdays_number = 0
-#             sundays_number = 0
-#             sandwiches_number = 0
-#             for i, shift in enumerate(intern.shifts):
-#                 if shift.isoweekday() == 5:
-#                     fridays_number += 1
-#                 elif shift.isoweekday() == 6:
-#                     saturdays_number += 1
-#                 elif shift.isoweekday() == 7:
-#                     sundays_number += 1
-#
-#                 if i > 0:
-#                     if (shift - intern.shifts[i - 1]).days == 2:
-#                         sandwiches_number += 1
-#
-#             stats.append(
-#                 {
-#                     "name": intern.name,
-#                     "days": len(intern.shifts),
-#                     "fridays": fridays_number,
-#                     "saturdays": saturdays_number,
-#                     "sundays": sundays_number,
-#                     "sandwiches": sandwiches_number,
-#                 }
-#             )
-#         return stats
+class BaseScheduler(ABC):
+    def __init__(self, interns: InternsList, schedule: MonthlySchedule):
+        self.interns = interns
+        self.schedule = schedule
+        self.statistics: list[dict] = []
+
+    @abstractmethod
+    def generate_schedule(self):
+        pass
+
+    @abstractmethod
+    def calculate_statistics(self):
+        pass
+
+    def print_statistics(self):
+        for row in self.statistics:
+            print(row)
+
+    @abstractmethod
+    def calculate_score(self):
+        pass
 
 
-# class GreedyScheduleSolver:
-#     def __init__(self, interns: InternsList, monthly_schedule: MonthlySchedule):
-#         self.interns = interns
-#         self.monthly_schedule = monthly_schedule
-#
-#     def solve(self):
-#         for day in self.monthly_schedule.schedule:
-#             print(f"day: {day.date}, ER shifts: {day.has_er_shifts}")
-#             if day.has_er_shifts:
-#                 best_available_intern = self.interns.get_best_available_intern(
-#                     date=day.date, er_shift=True
-#                 )
-#                 print(f"first best available intern for ER: {best_available_intern}")
-#                 day.er_shifts[0] = best_available_intern
-#                 best_available_intern.assign_to_shift(day.date)
-#
-#                 best_available_intern = self.interns.get_best_available_intern(
-#                     date=day.date, er_shift=True
-#                 )
-#                 print(f"second best available intern for ER: {best_available_intern}")
-#                 day.er_shifts[1] = best_available_intern
-#                 best_available_intern.assign_to_shift(day.date)
-#
-#             best_available_intern = self.interns.get_best_available_intern(
-#                 date=day.date, er_shift=False
-#             )
-#             print(f"best available intern for department: {best_available_intern}")
-#             day.department_shift = best_available_intern
-#             best_available_intern.assign_to_shift(day.date)
+# TODO: add score function
+class GreedyScheduler(BaseScheduler):
+    def __init__(self, interns: InternsList, schedule: MonthlySchedule):
+        super().__init__(interns, schedule)
+
+    def get_best_available_intern(self, date: datetime.date, er_shift=False):
+        def sort_key(intern: Intern, date: datetime.date):
+            if not intern.shifts:
+                return 100
+            else:
+                val = (date - max(intern.shifts)).days
+                return val
+
+        available_interns = [
+            intern for intern in self.interns if intern.is_available(date, er_shift)
+        ]
+
+        if not available_interns:
+            return None
+
+        best_intern = max(
+            available_interns,
+            key=lambda intern: sort_key(intern, date),
+        )
+
+        return best_intern
+
+    def generate_schedule(self):
+        for day in self.schedule.days:
+            print(f"day: {day.date}, ER shifts: {day.has_er_shifts}")
+            if day.has_er_shifts:
+                best_available_intern = self.get_best_available_intern(
+                    date=day.date, er_shift=True
+                )
+                print(f"first best available intern for ER: {best_available_intern}")
+                day.er_shifts[0] = best_available_intern
+                best_available_intern.shifts.append(day.date)
+
+                best_available_intern = self.get_best_available_intern(
+                    date=day.date, er_shift=True
+                )
+                print(f"second best available intern for ER: {best_available_intern}")
+                day.er_shifts[1] = best_available_intern
+                best_available_intern.shifts.append(day.date)
+
+            best_available_intern = self.get_best_available_intern(
+                date=day.date, er_shift=False
+            )
+            print(f"best available intern for department: {best_available_intern}")
+            day.department_shift = best_available_intern
+            best_available_intern.shifts.append(day.date)
+
+    def calculate_statistics(self):
+        for intern in self.interns:
+            fridays_number = 0
+            saturdays_number = 0
+            sundays_number = 0
+            sandwiches_number = 0
+            for i, shift in enumerate(intern.shifts):
+                if shift.isoweekday() == 5:
+                    fridays_number += 1
+                elif shift.isoweekday() == 6:
+                    saturdays_number += 1
+                elif shift.isoweekday() == 7:
+                    sundays_number += 1
+
+                if i > 0:
+                    if (shift - intern.shifts[i - 1]).days == 2:
+                        sandwiches_number += 1
+
+            self.statistics.append(
+                {
+                    "name": intern.name,
+                    "days": len(intern.shifts),
+                    "fridays": fridays_number,
+                    "saturdays": saturdays_number,
+                    "sundays": sundays_number,
+                    "sandwiches": sandwiches_number,
+                }
+            )
+
+    def calculate_score(self):
+        pass
 
 
 if __name__ == "__main__":
     interns_list = InternsList.from_csv("interns.csv")
-    print(interns_list)
-    print("---")
-    for intern in interns_list:
-        print(intern)
-    print("---")
+    monthly_schedule = MonthlySchedule(year=2023, month=5, first_er_shift_day=2)
 
-    monthly_schedule = MonthlySchedule(2023, 5, 2)
-    print(monthly_schedule)
+    scheduler = GreedyScheduler(interns=interns_list, schedule=monthly_schedule)
+    scheduler.generate_schedule()
     print("---")
-
-    # scheduler = Scheduler(interns_list=interns_list, monthly_schedule=monthly_schedule)
-    # scheduler.generate_greedy_schedule()
-    # print("---")
-    #
-    # print(monthly_schedule)
-    # print("---")
-    # for intern_stats in scheduler.get_schedule_statistics():
-    #     print(intern_stats)
+    scheduler.calculate_statistics()
+    scheduler.print_statistics()
