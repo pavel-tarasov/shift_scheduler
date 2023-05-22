@@ -3,16 +3,18 @@ import datetime
 
 
 class Intern:
-    def __init__(self, name: str, can_work_er: bool):
+    def __init__(self, name: str, department: bool, er: bool):
         self.name = name
-        self.can_work_er = can_work_er
+        self.department = department
+        self.er = er
         self.shifts: list[datetime.date] = []
 
     def is_available(self, date: datetime.date, er_shift=False):
         available = True
-        if er_shift:
-            if not self.can_work_er:
-                available = False
+        if er_shift and not self.er:
+            available = False
+        if not er_shift and not self.department:
+            available = False
         for shift in self.shifts:
             if abs((date - shift).days) < 2:
                 available = False
@@ -25,10 +27,11 @@ class Intern:
         return self.name
 
     def str_long(self) -> str:
-        if self.can_work_er:
-            return f"{self.name} (ER)"
-        else:
-            return f"{self.name}"
+        return (
+            f"{self.name} "
+            f"(Department: {'Yes' if self.department else 'No'}, "
+            f"ER: {'Yes' if self.er else 'No'})"
+        )
 
 
 class InternsList(list):
@@ -63,8 +66,9 @@ class InternsList(list):
             reader = csv.DictReader(csvfile)
             for row in reader:
                 name = row["name"]
-                can_work_er = row["er"] == "1"
-                interns.append(Intern(name, can_work_er))
+                department = row["department"] == "1"
+                er = row["er"] == "1"
+                interns.append(Intern(name, department, er))
         return cls(interns)
 
     def __str__(self) -> str:
