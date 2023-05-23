@@ -19,15 +19,17 @@ class Intern:
         self.desirable_days = desirable_days
         self.taken_days = forbidden_days
 
-    def is_available(self, date: datetime.date, er_shift=False):
+    def is_available(self, current_date: datetime.date, er_shift=False):
         available = True
         if er_shift and not self.er:
             available = False
         if not er_shift and not self.department:
             available = False
         for shift in self.shifts:
-            if abs((date - shift).days) < 2:
+            if abs((current_date - shift).days) < 2:
                 available = False
+        if current_date in self.taken_days:
+            available = False
         return available
 
     def __str__(self) -> str:
