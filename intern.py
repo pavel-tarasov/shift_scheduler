@@ -17,7 +17,6 @@ class Intern:
         self.shifts: list[datetime.date] = []
         self.forbidden_days = forbidden_days
         self.desirable_days = desirable_days
-        self.taken_days = forbidden_days
 
     def is_available(self, current_date: datetime.date, er_shift=False):
         available = True
@@ -28,7 +27,7 @@ class Intern:
         for shift in self.shifts:
             if abs((current_date - shift).days) < 2:
                 available = False
-        if current_date in self.taken_days:
+        if current_date in self.forbidden_days:
             available = False
         return available
 
