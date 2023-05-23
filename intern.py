@@ -3,11 +3,21 @@ import datetime
 
 
 class Intern:
-    def __init__(self, name: str, department: bool, er: bool):
+    def __init__(
+        self,
+        name: str,
+        department: bool,
+        er: bool,
+        forbidden_days: list[datetime.date],
+        desirable_days: list[datetime.date],
+    ):
         self.name = name
         self.department = department
         self.er = er
         self.shifts: list[datetime.date] = []
+        self.forbidden_days = forbidden_days
+        self.desirable_days = desirable_days
+        self.taken_days = forbidden_days
 
     def is_available(self, date: datetime.date, er_shift=False):
         available = True
@@ -60,7 +70,7 @@ class InternsList(list):
         raise TypeError(f"Intern type expected, got {type(item).__name__}")
 
     @classmethod
-    def from_csv(cls, file_path):
+    def from_csv(cls, file_path: str, year: int, month: int):
         interns = []
         with open(file_path, "r") as csvfile:
             reader = csv.DictReader(csvfile)
@@ -68,7 +78,24 @@ class InternsList(list):
                 name = row["name"]
                 department = row["department"] == "1"
                 er = row["er"] == "1"
-                interns.append(Intern(name, department, er))
+
+                forbidden_days = []
+                for day_index in row["forbidden_days"].split(","):
+                    if day_index != "":
+                        forbidden_days.append(
+                            datetime.date(year, month, int(day_index))
+                        )
+
+                desirable_days = []
+                for day_index in row["desirable_days"].split(","):
+                    if day_index != "":
+                        desirable_days.append(
+                            datetime.date(year, month, int(day_index))
+                        )
+
+                interns.append(
+                    Intern(name, department, er, forbidden_days, desirable_days)
+                )
         return cls(interns)
 
     def __str__(self) -> str:
