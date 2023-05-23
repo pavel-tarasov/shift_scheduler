@@ -44,5 +44,17 @@ class MonthlySchedule:
 
         return empty_schedule
 
+    def add_er_shift(self, date: datetime):
+        for day in self.days:
+            if day.date == date:
+                day.er_shifts = [None, None]
+                day.has_er_shifts = True
+
+    def remove_er_shift(self, date: datetime):
+        for day in self.days:
+            if day.date == date:
+                day.er_shifts = None
+                day.has_er_shifts = False
+
     def __str__(self) -> str:
         return "\n".join([str(day) for day in self.days])
