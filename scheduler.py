@@ -8,6 +8,16 @@ from intern import InternsList, Intern
 from schedule import MonthlySchedule, DailySchedule
 
 
+class NoAvailableInternsError(Exception):
+    """Raise when there is no interns available for the shift"""
+
+    def __init__(self, date: datetime.date):
+        self.date = date
+
+    def __str__(self):
+        return f"There is no available interns for date {self.date}"
+
+
 class BaseScheduler(ABC):
     def __init__(self, interns: InternsList, schedule: MonthlySchedule):
         self.interns = interns
@@ -53,7 +63,7 @@ class GreedyScheduler(BaseScheduler):
         ]
 
         if not available_interns:
-            return None
+            raise NoAvailableInternsError(date)
 
         scores = [calc_score(intern, date) for intern in available_interns]
         max_score = max(scores)

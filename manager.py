@@ -3,7 +3,7 @@ from typing import Type
 
 from intern import InternsList
 from schedule import MonthlySchedule
-from scheduler import BaseScheduler
+from scheduler import BaseScheduler, NoAvailableInternsError
 
 
 class SchedulerManager:
@@ -26,7 +26,10 @@ class SchedulerManager:
                 scheduler = scheduler_class(
                     deepcopy(self.interns), deepcopy(self.schedule)
                 )
-                scheduler.generate_schedule()
+                try:
+                    scheduler.generate_schedule()
+                except NoAvailableInternsError:
+                    continue
                 scheduler.calculate_statistics()
                 score = scheduler.calculate_score()
                 self.results.append(
@@ -39,4 +42,7 @@ class SchedulerManager:
                 )
 
     def get_best_result(self):
-        return min(self.results, key=lambda x: x["score"])
+        if len(self.results) != 0:
+            return min(self.results, key=lambda x: x["score"])
+        else:
+            return None
