@@ -8,15 +8,15 @@ class Intern:
         name: str,
         department: bool,
         er: bool,
-        forbidden_days: list[datetime.date],
-        desirable_days: list[datetime.date],
+        forbidden_dates: list[datetime.date],
+        desirable_dates: list[datetime.date],
     ):
         self.name = name
         self.department = department
         self.er = er
         self.shifts: list[datetime.date] = []
-        self.forbidden_days = forbidden_days
-        self.desirable_days = desirable_days
+        self.forbidden_dates = forbidden_dates
+        self.desirable_dates = desirable_dates
 
     def is_available(self, current_date: datetime.date, er_shift=False):
         available = True
@@ -27,7 +27,7 @@ class Intern:
         for shift in self.shifts:
             if abs((current_date - shift).days) < 2:
                 available = False
-        if current_date in self.forbidden_days:
+        if current_date in self.forbidden_dates:
             available = False
         return available
 
@@ -100,7 +100,7 @@ class InternsList(list):
         return cls(interns)
 
     def __str__(self) -> str:
-        return self.str_short()
+        return self.str_full()
 
     def str_short(self) -> str:
         return ", ".join([str(intern) for intern in self])
@@ -109,4 +109,4 @@ class InternsList(list):
         return ", ".join([intern.str_long() for intern in self])
 
     def str_full(self) -> str:
-        return "\n".join([intern.str_full() for intern in self])
+        return "\n".join([intern.str_long() for intern in self])
