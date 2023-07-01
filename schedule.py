@@ -14,11 +14,11 @@ class DailySchedule:
     def __str__(self) -> str:
         if self.has_er_shifts:
             return (
-                f"{self.date}: MD shift: {self.department_shift}; "
+                f"{self.date.strftime('%A')} {self.date}: MD shift: {self.department_shift}; "
                 f"ER shifts: {self.er_shifts[0]}, {self.er_shifts[1]}"
             )
         else:
-            return f"{self.date}: MD shift: {self.department_shift}"
+            return f"{self.date.strftime('%A')} {self.date}: MD shift: {self.department_shift}"
 
 
 class MonthlySchedule:
